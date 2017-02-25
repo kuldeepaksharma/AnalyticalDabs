@@ -1,0 +1,238 @@
+---
+title: "R Notebook"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+My attempt at the BikeShare Linear Regression Machine Learning Project
+
+Read in bikeshare.csv file and set it to a dataframe called bike.
+```{r Read in bikeshare.csv file and set it to a dataframe called bike.}
+
+bike <- read.csv('~/Documents/R-Course-HTML-Notes/R-for-Data-Science-and-Machine-Learning/Training Exercises/Machine Learning Projects/CSV files for ML Projects/bikeshare.csv')
+
+```
+
+Check the head of df
+
+```{r Check the head of df}
+print(head(bike))
+```
+
+Can you figure out what is the target we are trying to predict? Check the Kaggle Link above if you are confused on this.
+
+```{r Can you figure out what is the target we are trying to predict?}
+print(str(bike))
+```
+
+<B> Create a scatter plot of count vs temp. Set a good alpha value. </B>
+
+```{r Create a scatter plot of count vs temp. Set a good alpha value.}
+library(ggplot2)
+library(plotly)
+pl <- ggplot(bike,aes(y=count,x=temp)) + geom_point(aes(color=temp),alpha=0.2)
+
+print(ggplotly(pl))
+```
+
+<B> Plot count versus datetime as a scatterplot with a color gradient based on temperature. </B> 
+You'll need to convert the datetime column into POSIXct before plotting.
+
+```{r Plot count versus datetime as a scatterplot with a color gradient based on temperature.}
+library(ggplot2)
+library(plotly)
+
+bike$datetime <- as.POSIXct(as.character(bike$datetime),format = "%Y-%m-%d %H:%M:%S")
+
+pl <- ggplot(bike,aes(y=count,x=datetime)) + geom_point(aes(color=temp),alpha=0.5) + scale_color_gradient(low = '#4ACABB' ,high = '#ff6b00')
+
+print(pl)
+```
+
+<B> What is the correlation between temp and count? </B>
+
+```{r What is the correlation between temp and count?}
+library(corrgram)
+library(corrplot)
+
+cor.data <- cor(bike[,c('temp','count')])
+
+print(cor.data)
+```
+
+Let's explore the season data. 
+<B> Create a boxplot, with the y axis indicating count and the x axis begin a box for each season. </B>
+
+```{r Create a boxplot with the y axis indicating count and the x axis begin a box for each season.}
+library(ggplot2)
+library(plotly)
+
+pl <- ggplot(bike,aes(y = count,x = factor(season))) + geom_boxplot(aes(color = factor(season)))
+
+print(ggplotly(pl))
+
+```
+
+<B> Feature Engineering </B>
+
+A lot of times you'll need to use domain knowledge and experience to engineer and create new features. Let's go ahead and engineer some new features from the datetime column.
+Create an "hour" column that takes the hour from the datetime column. You'll probably need to apply some function to the entire datetime column and reassign it. Hint:
+time.stamp <- bike$datetime[4]
+format(time.stamp, "%H")
+
+```{r Create an "hour" column that takes the hour from the datetime column.}
+
+bike$hour <- format(bike$datetime, '%H')
+
+print(head(bike))
+```
+
+<B> Now create a scatterplot of count versus hour, with color scale based on temp. Only use bike data where workingday==1. </B>
+
+Optional Additions:
+Use the additional layer: scale_color_gradientn(colors=c('color1',color2,etc..)) where the colors argument is a vector gradient of colors you choose, not just high and low.
+Use position=position_jitter(w=1, h=0) inside of geom_point() and check out what it does.
+
+```{r Create a scatterplot of count versus hour with color scale based on temp}
+library(ggplot2)
+library(plotly)
+library(dplyr)
+
+pl <- ggplot(filter(bike,workingday == 1),aes(y = count,x = hour)) + geom_jitter(aes(color = temp),alpha = 0.4) + scale_color_gradientn(colours = c('dark blue','blue','green','yellow','orange','red'),guide = 'colourbar')
+
+print(pl)
+
+
+```
+
+<B> Now create the same plot for non working days: </B>
+
+```{r Now create the same plot for non working days}
+library(ggplot2)
+library(plotly)
+library(dplyr)
+
+pl <- ggplot(filter(bike,workingday == 0),aes(y = count,x = hour)) + geom_jitter(aes(color = temp),alpha = 0.4) + scale_color_gradientn(colours = c('dark blue','blue','green','yellow','orange','red'),guide = 'colourbar')
+
+print(pl)
+
+```
+
+ou should have noticed that working days have peak activity during the morning (~8am) and right after work gets out (~5pm), with some lunchtime activity. While the non-work days have a steady rise and fall for the afternoon
+Now let's continue by trying to build a model, we'll begin by just looking at a single feature.
+
+<B> Building the Model </B>
+
+<B> Use lm() to build a model that predicts count based solely on the temp feature, name it temp.model </B>
+
+```{r Use lm() to build a model that predicts count based solely on the temp feature, name it temp.model}
+
+temp.model <- lm(count ~ temp,data = bike)
+
+```
+
+<B> Get the summary of the temp.model </B>
+
+```{r Get the summary of the temp.model}
+
+print(summary(temp.model))
+
+```
+
+<B> How many bike rentals would we predict if the temperature was 25 degrees Celsius? Calculate this two ways: </B>
+
+Using the values we just got above:
+1. Using the predict() function
+2. You should get around 235.3 bikes.
+
+```{r How many bike rentals would we predict if the temperature was 25 degrees Celsius?}
+
+coef <- as.data.frame(coefficients(temp.model))
+check_temp <- 25
+count1 <- coef[1,1] + coef[2,1]*check_temp
+print(paste('Method 1: Count of Bikes at temp 25 Degree Celcius =',round(count1,4)))
+
+check.tempdf <- data.frame(temp = 25)
+count2 <- predict(temp.model,check.tempdf)
+print(paste('Method 2: Count of Bikes at temp 25 Degree Celcius =',round(count2,4)))
+
+```
+
+<B> Use sapply() and as.numeric to change the hour column to a column of numeric values. </B> 
+
+```{r Convert hour column to numeric values}
+
+bike$hour <- sapply(bike$hour,as.numeric)
+
+print(str(bike))
+
+```
+
+Finally build a model that attempts to predict count based off of the following features. Figure out if theres a way to not have to pass/write all these variables into the lm() function. 
+Hint: StackOverflow or Google may be quicker than the documentation.
+
+```{r Build the final model}
+
+final.model <- lm(formula = count ~ . - casual - registered - datetime - atemp, data = bike)
+
+```
+
+<B> Get the summary of the model </B>
+
+```{r Get the summary of the model}
+
+print(summary(final.model))
+
+```
+
+<B> Optional: See how well you can predict for future data points by creating a train/test split. But instead of a random split, your split should be "future" data for test, "previous" data for train. </B>
+
+```{r}
+library(caTools)
+
+previous <- filter(bike,datetime < '2012-07-01')
+future <- filter(bike,datetime >= '2012-07-01')
+
+prev.model <- lm(formula = count ~ . - casual - registered - datetime - atemp, data = previous)
+
+print(summary(prev.model))
+
+```
+
+<B> Check the model against future data: </B>
+
+```{r Check the model against future data:}
+
+count.pred <- predict(prev.model,future)
+results <- data.frame(predicted = count.pred,actual = future$count)
+
+print(head(results))
+
+```
+
+<B> Calculating Performance Measures of our model based on future values: </B>
+
+```{r Calculating Performance Measures of our model based on future values}
+mse <- mean((results$predicted-results$actual)^2)
+rmse <- mse^0.5
+
+SSE <- sum((results$predicted-results$actual)^2)
+SST <- sum((mean(bike$count) - results$actual)^2)
+
+R2 <- 1- SSE/SST
+
+print(paste('Mean Squared Error = ',round(mse,4)))
+print(paste('Root Mean Squared Error = ',round(rmse,4)))
+print(paste('R Squared = ',round(R2,4)))
+
+
+```
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).
