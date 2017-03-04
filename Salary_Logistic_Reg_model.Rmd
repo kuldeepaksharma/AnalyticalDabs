@@ -1,0 +1,304 @@
+---
+title: "Logistic Regression Project"
+author: "Kuldeepak Kumar Sharma"
+html_document: default
+date: "2/7/2017"
+output: html_document
+---
+
+In this project we will be working with the UCI adult dataset. We will be attempting to predict if people in the data set belong in a certain class by salary, either making <=50k or >50k per year.
+<hr />
+
+<h3><b>Get the Data</h3>
+
+Read in the adult_sal.csv file and set it to a data frame called adult.</b>
+
+```{r}
+adult <- read.csv('~/Documents/R-Course-HTML-Notes/R-for-Data-Science-and-Machine-Learning/Training Exercises/Machine Learning Projects/CSV files for ML Projects/adult_sal.csv')
+library(dplyr)
+adult <- select(adult,-X)
+```
+
+<b>You should notice the index has been repeated. Drop this column.
+Check the head,str, and summary of the data now.</b>
+```{r}
+print(head(adult))
+print(str(adult))
+print(summary(adult))
+```
+<hr />
+
+<h3><b>Data Cleaning</b></h3>
+Notice that we have a lot of columns that are cateogrical factors, however a lot of these columns have too many factors than may be necessary. In this data cleaning section we'll try to clean these columns up by reducing the number of factors.
+
+<h4><b>type_employer column</h4>
+Use table() to check out the frequency of the type_employer column.</b>
+```{r}
+table(adult$type_employer)
+```
+<b>How many Null values are there for type_employer? What are the two smallest groups?
+<br>
+Combine these two smallest groups into a single group called "Unemployed". There are lots of ways to do this, so feel free to get creative. Hint: It may be helpful to convert these objects into character data types (as.character() and then use sapply with a custom function)
+
+What other columns are suitable for combining? Combine State and Local gov jobs into a category called SL-gov and combine self-employed jobs into a category called self-emp.
+</b>
+```{r}
+
+impute <- function(ivector,old,new){
+  ivector <- as.character(ivector)
+  buff_vec <- ivector
+  for(i in 1:length(ivector)){
+    if(ivector[i] == old){
+      buff_vec[i] <- new
+    } else{buff_vec[i] <- ivector[i]}
+  }
+  buff_vec <- as.factor(buff_vec)
+  return(buff_vec)
+}
+
+adult$type_employer <- impute(adult$type_employer,'Never-worked','Unemployed')
+adult$type_employer <- impute(adult$type_employer,'Without-pay','Unemployed')
+adult$type_employer <- impute(adult$type_employer,'State-gov','SL-gov')
+adult$type_employer <- impute(adult$type_employer,'Local-gov','SL-gov')
+adult$type_employer <- impute(adult$type_employer,'Self-emp-inc','Self-emp')
+adult$type_employer <- impute(adult$type_employer,'Self-emp-not-inc','Self-emp')
+```
+
+<h4><b>Marital Column </h4>
+
+Use table() to look at the marital column</b>
+```{r}
+print(summary(adult$marital))
+```
+<b>Reduce this to three groups:</b>
+
+<ul>
+<li>Married</li>
+<li>Not-Married</li>
+<li>Never-Married</li>
+</ul>
+```{r}
+
+adult$marital <- impute(adult$marital,'Divorced','Not-Married')
+adult$marital <- impute(adult$marital,'Separated','Not-Married')
+adult$marital <- impute(adult$marital,'Widowed','Not-Married')
+adult$marital <- impute(adult$marital,'Married-AF-spouse','Married')
+adult$marital <- impute(adult$marital,'Married-civ-spouse','Married')
+adult$marital <- impute(adult$marital,'Married-spouse-absent','Married')
+
+```
+<h4><b>Country Column </h4>
+
+Use table() to look at the country column</b>
+```{r}
+print(summary(adult$country))
+
+```
+<b>Group these countries together however you see fit. You have flexibility here because there is no right/wrong way to do this, possibly group by continents. You should be able to reduce the number of groups here significantly though.</b>
+```{r}
+adult$country <- impute(adult$country,'United-States','North.America')
+adult$country <- impute(adult$country,'Canada','North.America')
+adult$country <- impute(adult$country,'Puerto-Rico','North.America')
+adult$country <- impute(adult$country,'Cambodia','Asia')
+adult$country <- impute(adult$country,'China','Asia')
+adult$country <- impute(adult$country,'Hong','Asia')
+adult$country <- impute(adult$country,'India','Asia')
+adult$country <- impute(adult$country,'Iran','Asia')
+adult$country <- impute(adult$country,'Japan','Asia')
+adult$country <- impute(adult$country,'Laos','Asia')
+adult$country <- impute(adult$country,'Philippines','Asia')
+adult$country <- impute(adult$country,'Taiwan','Asia')
+adult$country <- impute(adult$country,'Thailand','Asia')
+adult$country <- impute(adult$country,'Vietnam','Asia')
+adult$country <- impute(adult$country,'England','Europe')
+adult$country <- impute(adult$country,'France','Europe')
+adult$country <- impute(adult$country,'Germany','Europe')
+adult$country <- impute(adult$country,'Greece','Europe')
+adult$country <- impute(adult$country,'Holand-Netherlands','Europe')
+adult$country <- impute(adult$country,'Hungary','Europe')
+adult$country <- impute(adult$country,'Italy','Europe')
+adult$country <- impute(adult$country,'Poland','Europe')
+adult$country <- impute(adult$country,'Portugal','Europe')
+adult$country <- impute(adult$country,'Scotland','Europe')
+adult$country <- impute(adult$country,'Yugoslavia','Europe')
+adult$country <- impute(adult$country,'Ireland','Europe')
+adult$country <- impute(adult$country,'Ecuador','Latin.and.South.America')
+adult$country <- impute(adult$country,'Nicaragua','Latin.and.South.America')
+adult$country <- impute(adult$country,'Peru','Latin.and.South.America')
+adult$country <- impute(adult$country,'Honduras','Latin.and.South.America')
+adult$country <- impute(adult$country,'Columbia','Latin.and.South.America')
+adult$country <- impute(adult$country,'Dominican-Republic','Latin.and.South.America')
+adult$country <- impute(adult$country,'El-Salvador','Latin.and.South.America')
+adult$country <- impute(adult$country,'Cuba','Latin.and.South.America')
+adult$country <- impute(adult$country,'Guatemala','Latin.and.South.America')
+adult$country <- impute(adult$country,'Haiti','Latin.and.South.America')
+adult$country <- impute(adult$country,'Mexico','Latin.and.South.America')
+adult$country <- impute(adult$country,'Jamaica','Latin.and.South.America')
+adult$country <- impute(adult$country,'Outlying-US(Guam-USVI-etc)','Latin.and.South.America')
+adult$country <- impute(adult$country,'Trinadad&Tobago','Latin.and.South.America')
+adult$country <- impute(adult$country,'?','Other')
+adult$country <- impute(adult$country,'South','Other')
+```
+<b>Check the str() of adult again. Make sure any of the columns we changed have factor levels with factor()</b>
+```{r}
+print(str(adult))
+```
+<b>We could still play around with education and occupation to try to reduce the number of factors for those columns, but let's go ahead and move on to dealing with the missing data. Feel free to group thos columns as well and see how they effect your model.
+<hr />
+
+<h3>Missing Data</h3></b>
+Notice how we have data that is missing.
+
+<br /> 
+
+<h4><b>Amelia</h4>
+Install and load the Amelia package.</b>
+
+```{r}
+library(Amelia)
+missmap(adult,main='Missingness Map')
+```
+<b>Convert any cell with a '?' or a ' ?' value to a NA value. Hint: is.na() may be useful here or you can also use brackets with a conditional statement. </b>
+
+```{r}
+# Check if any column has an NA values
+apply(is.na(adult), 2, sum)
+# Check if any column has ?
+apply(adult,2,function(r) sum(r == '?'))
+
+```
+<b>Convert any cell with a '?' or a ' ?' value to a NA value.</b>
+
+```{r}
+adult$type_employer <- impute(adult$type_employer,'?',NA)
+adult$occupation <- impute(adult$occupation,'?',NA)
+
+```
+
+<b>Using table() on a column with NA values should now not display those NA values, instead we just see 0 for ?.</b>
+
+```{r}
+# Check if any column has an NA values
+apply(is.na(adult), 2, sum)
+# Check if any column has ?
+apply(adult,2,function(r) sum(r == '?'))
+```
+
+<b> You should have noticed that using missmap(adult) is bascially a heatmap pointing out missing values (NA). This gives you a quick glance at how much data is missing, in this case, not a whole lot (relatively speaking). You probably also noticed that there is a bunch of y labels, get rid of them by running the command below. What is col=c('yellow','black') doing? </b>
+
+```{r}
+
+missmap(adult,y.at=c(1),y.labels = c(''),col=c('yellow','black'))
+
+```
+
+<b>Use na.omit() to omit NA data from the adult data frame. Note, it really depends on the situation and your data to judge whether or not this is a good decision. You shouldn't always just drop NA values.</b>
+```{r}
+print(str(adult))
+adult <- na.omit(adult)
+```
+<b>Use missmap() to check that all the NA values were in fact dropped.</b>
+```{r}
+missmap(adult,y.at=c(1),y.labels = c(''),col=c('yellow','black'))
+```
+
+<h3><b>Exploratory Data Analysis</b></h3>
+
+Although we've cleaned the data, we still have explored it using visualization.
+
+<b>Use ggplot2 to create a histogram of ages, colored by income.</b>
+```{r}
+library(ggplot2)
+library(plotly)
+
+pl<- ggplot(adult, aes(age)) + 
+  geom_histogram(aes(fill=income),position = position_stack(reverse = T),color='black',binwidth = 1)
+
+print(pl)
+```
+<b>Plot a histogram of hours worked per week</b>
+```{r}
+print(ggplot(adult,aes(hr_per_week))+ geom_histogram())
+```
+<b>Rename the country column to region column to better reflect the factor levels.</b>
+```{r Rename country 2 region}
+library(dplyr)
+names(adult)[names(df) == 'country'] <- 'region'
+print(str(adult))
+```
+<b>Create a barplot of region with the fill color defined by income class. Optional: Figure out how rotate the x axis text for readability</b>
+```{r Plot region barchart, include=TRUE}
+library(forcats)
+pl <- ggplot(adult,aes(x = fct_infreq(region, ordered=T))) + 
+  geom_bar(aes(fill=income),color='black',stat = 'count',position=position_stack(reverse=T))
+pl2 <- pl + labs(x = 'region') + theme(axis.text.x = element_text(angle = 90,hjust=1))
+print(pl2)
+```
+<hr />
+
+<h3><b>Building a Model</b></h3>
+Now it's time to build a model to classify people into two groups: Above or Below 50k in Salary.
+
+<h4><b>Logistic Regression</h4></b>
+
+Logistic Regression is a type of classification model. In classification models, we attempt to predict the outcome of categorical dependent variables, using one or more independent variables. The independent variables can be either categorical or numerical.
+
+Logistic regression is based on the logistic function, which always takes values between 0 and 1. Replacing the dependent variable of the logistic function with a linear combination of dependent variables we intend to use for regression, we arrive at the formula for logistic regression.
+
+<h4><b>Train Test Split</h4>
+
+Split the data into a train and test set using the caTools library as done in previous lectures. Reference previous solutions notebooks if you need a refresher.</b>
+```{r}
+library(caTools)
+print(head(adult))
+set.seed(101)
+split <- sample.split(adult$income,SplitRatio = 0.7)
+adult.train <- subset(adult, split == T)
+adult.test <- subset(adult,split == F)
+```
+
+<h4><b>Training the Model</h4>
+
+Use all the features to train a glm() model on the training data set, pass the argument family=binomial(logit) into the glm function.
+If you get a warning, this just means that the model may have guessed the probability of a class with a 0% or 100% chance of occuring.
+
+Check the model summary</b>
+```{r}
+final.model <- glm(income ~.,family = binomial(link='logit'),data = adult.train)
+print(summary(final.model))
+
+```
+<b>We have still a lot of features! Some important, some not so much. R comes with an awesome function called step(). The step() function iteratively tries to remove predictor variables from the model in an attempt to delete variables that do not significantly add to the fit. How does it do this? It uses AIC.
+
+Use new.model <- step(your.model.name) to use the step() function to create a new model.
+You should get a bunch of messages informing you of the process. Check the new.model by using summary()</b>
+```{r}
+lean.model <- step(final.model)
+print(summary(lean.model))
+```
+
+You should have noticed that the step() function kept all the features used previously! While we used the AIC criteria to compare models, there are other criteria we could have used. If you want you can try reading about the variable inflation factor (VIF) and vif() function to explore other options for comparison criteria. In the meantime let's continue on and see how well our model performed against the test set.
+
+<b>Create a confusion matrix using the predict function with type='response' as an argument inside of that function.</b>
+```{r}
+fitprob <- predict(lean.model,newdata = adult.test,type = 'response')
+fitresults <- ifelse(fitprob >0.5,1,0)
+pred.stats <- as.data.frame(table(adult.test$income,fitprob>0.5))
+pred.tab <- table(adult.test$income,fitprob>0.5)
+print(table(adult.test$income,fitprob>0.5))
+```
+
+<b>What was the accuracy of our model?
+
+Calculate other measures of performance like, recall or precision.</b>
+
+```{r}
+print(paste('Accuracy =',(pred.tab[1,1]+pred.tab[2,2])/sum(pred.tab)))
+print(paste('Precision =',pred.tab[1,1]/sum(pred.tab[,1])))
+print(paste('Recall =',pred.tab[1,1]/sum(pred.tab[1,])))
+
+```
+
+<b>In your opinion, how good was this model? What other context would you like to know before answering that question?</b>
+
+No right/wrong answers here, just want you to think about accuracy,precision, and recall. You would like to know the costs associated with each.
